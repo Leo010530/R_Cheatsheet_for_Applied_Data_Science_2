@@ -1,0 +1,505 @@
+---
+title: "Cheatsheet"
+author: "Leo"
+date: "2020/12/27"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library("tidyverse")
+library("ggpubr")
+# rm(list = ls())
+```
+## Read files(txt)
+header: column name
+row.names: which column to be the row names
+\t: space 
+```{r}
+# bp <- read.table ("blood_pressure.txt",header = T,row.names = 1, sep='\t')
+```
+## Get vector
+continuous vector
+```{r}
+a <- seq(1,20,1)
+a
+b <- seq(1,20,0.5)
+b
+```
+replicate
+```{r}
+c <- replicate(10,mean(rnorm(10)))
+c
+d <- rep(1,10)
+d
+```
+## date frame
+```{r}
+trial <- read.csv("drug_trial.csv")
+summary(trial)
+nrow(trial)
+ncol(trial)
+trail <- trial[-c(4),] # remove 4th column
+unique(trial$treatment) # a list of unique value
+sample(trial,2,replace=FALSE) # sample for columns
+sample_n(trial,2,replace=FALSE) # sample for rows
+```
+
+```{r}
+# Create data frame
+data1 <- data.frame(x1=c(1,3,5,7),x2=c(2,4,6,8),x3=c(11,12,13,14),x4=c(15,16,17,18))
+data1
+# add a row
+row <- c(1,1,1,1)
+data2 <- rbind(data1[1:2,], row, data1[3:nrow(data1),]) # row bind
+data2
+# add a column
+y <- 1:4
+data2 <- cbind(data1[,1:2],y,data1[,3:ncol(data1)]) # column bind
+data2
+```
+
+
+```{r}
+# column names
+names(data2)
+# row names
+row.names(data2)
+```
+
+## Some useful tools to plot the data
+looking at the distribution, use histogram
+```{r}
+n = rnorm(20,5)
+# breaks divides data in n groups
+hist(n,main = "distance(along the street)[m]",xlab = "distance[m]",
+     xlim = c(0,10),breaks=10,border = "red",col = "royalblue1") 
+```
+if two vectors, combine them into a data frame with index. 
+```{r}
+response <- c(a,n)
+index <- c(rep("esc",20),rep("casc",20))
+dataset <- data.frame(response,index)
+library(knitr)
+kable(dataset[1:5,])
+boxplot( response ~ index, dataset,xlab = "haha", main = "csd",ylab = "csac")
+```
+if data frame, ggplot2
+```{r}
+g <- ggplot(trial,aes(x = treatment,y = pain, colour = treatment)) 
+g <- g + geom_boxplot()
+g <- g + geom_jitter()
+g
+hamsters <- read.csv("hamsters.csv")
+p <- ggplot(hamsters, aes(x=lifespan,fill=group))
+p <- p + facet_grid(cols=vars(group))
+p <- p + geom_histogram(binwidth = 5)
+p <- p + xlab("life span (weeks)")
+p <- p + scale_fill_manual(values=c("dodgerblue", "tomato1"))
+p
+```
+more on ggplot2
+```{r}
+# multiple curves
+
+```
+
+Confidence interval plot
+```{r}
+covid <- read.csv("coronavirus.csv")
+```
+
+```{r}
+obs_values<-vector()
+lower_cis<-vector()
+upper_cis<-vector()
+for (a in 1:nrow(covid)){
+  country<-covid[a,1]
+  obs_total<-covid[a,2]
+  obs_new<-covid[a,3]
+  obs<-obs_new/obs_total
+  old = obs_total - obs_new
+  obs_sample<-c(rep("new", obs_new), rep("old", old))
+  bootstrap_new<-vector()
+  for (b in 1:100){
+    bootstrap_sample<-sample(obs_sample, length(obs_sample), replace = T)
+    bootstrap_new<-c(bootstrap_new, length(subset(bootstrap_sample, bootstrap_sample == "new")))
+  }
+  lower_ci<-quantile(bootstrap_new, 0.025)
+  upper_ci<-quantile(bootstrap_new, 0.975)
+  obs_new<-obs_new/obs_total
+  lower_ci<-lower_ci/obs_total
+  upper_ci<-upper_ci/obs_total
+  obs_values<-c(obs_values, obs_new)
+  lower_cis<-c(lower_cis, lower_ci)
+  upper_cis<-c(upper_cis, upper_ci)
+}
+```
+
+```{r}
+ymax<-ceiling(max(upper_cis)*100)/100
+par(mar=c(11,4,4,2))
+plot(obs_values, xaxt = "n", ylim = c(0,ymax), xlab = "", pch = ".", ylab = "Prop new")
+axis(side = 1, at = seq(1,nrow(covid),1), labels = covid$Country, las = 2)
+for (a in 1:length(lower_cis)){
+  lines(x = c(a,a), y = c(lower_cis[a], upper_cis[a]))
+  lines(x = c(a-0.1,a+0.1), y = c(lower_cis[a], lower_cis[a]))
+  lines(x = c(a-0.1,a+0.1), y = c(upper_cis[a], upper_cis[a]))
+}
+points(x = seq(1,nrow(covid),1), y = obs_values, pch = 20)
+```
+
+## Randomisation
+
+```{r}
+# forearms$newGender1 <- sample(forearms$Gender,nrow(forearms), replace=FALSE)
+```
+
+## Concatenate Strings
+```{r}
+paste0("a","b")
+c="Leo"
+paste0("I am ",c)
+```
+
+## Some functions related to normal distribution
+```{r}
+rnorm(10) # number,mean(0),sd(1)
+pnorm(1.96) # cumulative distribution function
+qnorm(0.975) # the inverse of the second
+```
+## Some functions related to uniform distribution
+```{r}
+runif(26,0,100) # number,min,max
+```
+## Some functions related to t distribution
+From t value to p value:
+x=2.093, df=10
+- and +: same
+show the area t>2.093 and t<-2.093
+if significant: one-tailed:<0.1, two tailed<0.05
+```{r}
+dt(1.729,10) #one tailed
+dt(2.093,10) #two tailed
+```
+## Hypothesis testing
+### t-test
+Assumptions: 
+
+1. Independent random sampling (For independent random sampling, we assume that this assumption has been met from looking at the experimental design.)
+2. Normal distribution of data in both groups
+3. Sample sizes are small(n < 100)
+
+one-tailed vs two-tailed 
+```{r}
+# one-tailed (alternative=greater,less)
+t.test(n,mu=6,alternative="greater")
+# two-tailed (alternative=two.sided)
+t.test(n,mu=6,alternative="two.sided")
+```
+one sample vs two sample(mu)
+```{r}
+t.test(n,mu=6)
+l <- seq(1,20)
+t.test(l,n)
+```
+paired vs unpaired(paired)
+```{r}
+c <- rep(1,10)
+t.test(c,d,paired=TRUE)
+```
+### Power of t test
+
+statistical power is the likelihood that a study will detect an effect when there is an effect there to be detected. 
+
+sample size/power, delta: difference in means, type: t-test type, alternative: 
+```{r}
+power.t.test(n=10, delta = 3, sd =10, sig.level = 0.05, type = "one.sample",
+             alternative = "one.sided")
+power.t.test(delta = 26, sd =30, sig.level = 0.05, power=0.8, type = "two.sample",
+             alternative = "one.sided")
+```
+
+### Wilcoxon test
+1-sample wilcoxon test
+```{r}
+wilcox.test(a,mu=0) 
+```
+Wilcoxon signed-rank test
+```{r}
+wilcox.test(c,d,paired = TRUE)
+```
+Wilcoxon Rank Sum test
+```{r}
+wilcox.test(a,n)
+```
+### ANOVA
+#### Formulate null and alternative hypothesis and decide which type of ANOVA to use
+
+#### Assumptions: 
+
+1. Independent random sampling
+2. Normality of residuals (residuals: distances from group mean)
+3. Equality of Variances
+
+#### Check assumptions 
+
+Independent random sampling: we assume that this assumption has been met from looking at the experimental design.
+
+In order to test the other two assumptions, we need to make an ANOVA model. 
+```{r}
+model <- aov(pain~treatment,data=trial)
+```
+Normality of residuals
+```{r}
+shapiro.test(resid(model))
+```
+The null hypothesis of the shapiro-wilk test is that the distribution is normal. 
+The p-value is >/< 0.05, so we can(not) reject the null hypothesis. We conclude that the residuals is (not) normally distributed. 
+
+Equality of Variances
+```{r}
+plot(model,1)
+```
+If all the "columns" are approximately the same height, the equality of Variances is met. 
+From the "Residual vs Fitted" plot, we conclude that. 
+
+### Perform ANOVA
+We can now perform an ANOVA. 
+```{r}
+summary(model)
+```
+conclusion of ANOVA: 
+
+#### Perform TukeyHSD test(a type of post hoc test) 
+
+We can now perform TukeyHSD test to find out what groups are exactly different. 
+```{r}
+TukeyHSD(model)
+```
+conclusion of TukeyHSD test: 
+
+## About masking
+(from formative)This is a type of masking to avoid any kind of human bias in the experiment or the data analysis. If you have ideas about what you would expect the lifespan of both populations to be, you may be tempted to throw out data points that don’t fit in your theory as “outliers”, for instance.
+
+## Correlation and linear regression
+
+### import sample data
+```{r}
+gbp_malaria <- read.csv("IHME-GBD_2019_DATA_Malaria.tsv", sep = "\t", header = TRUE,
+                        stringsAsFactors = FALSE)
+gbp_malaria %>%
+  group_by(measure_name) %>%
+  top_n(2) %>%
+  arrange(measure_name)
+```
+Assumptions (from ADS2 week 18 lecture, slide 18): 
+
+  1. The residuals are normally distributed. 
+  2. The errors are independent (independent random sampling)
+  3. The relationships are linear. 
+  
+We can see there is linear relationship (not “U” shaped etc..) between year and prevalence in all age groups. Also visual inspection shows that there is no obvious outliers. We think it is appropriate to do linear regression.
+
+Although the linear regression lecture mentions the assumption for linear regression is that the residuals need to be normally distributed. However, due to the small sample size, it is quite likely that the residuals are not normally distributed. We think r.squared is enough to assess whether the linear model fits our data points. 
+
+r.squared describes the degree of interpretation of input variables to output variables. Formula: In linear regression, the larger the R-square (the closer to 1), the better the linear regression is. 
+
+We want to set the threshold of r.squared to 0.7 (from ADS2 week 18 lecture, slide 21). If r.squared is larger than 0.7, we think the result of linear regression can reflect our data points.
+
+### Perform linear regression
+```{r}
+# fit <- lm(val~year,ayvs1[[cnt]])
+# slope[j,i] <- as.numeric(fit$coefficients[2])
+# slope[j,i+1] <- summary(fit)$r.squared
+```
+### Calculate the correlation coefficient
+```{r}
+# cor()
+```
+
+### Add straight line to the plot
+```{r}
+# abline(fit,col="red") fit=lm results
+```
+
+### Add straight line and confidence interval using ggplot2
+```{r}
+# Add regression line: add = "reg.line"
+# Add confidence interval: conf.int = TRUE
+# Add parameter label: stat_cor(method="pearson") 
+threecountries <- sample(gbp_malaria$location_name, 3, replace = FALSE)
+gbp_malaria %>%
+  filter(location_name == threecountries[1]) %>%
+  filter(measure_name == "Deaths") %>%
+  ggscatter(x = "year", y = "val", add = "reg.line",
+            add.params = list(color = "red", fill = "lightgray"),conf.int = TRUE) +
+  labs(x = "Year", y = "Value", colour = "") +
+  stat_cor(method = "pearson") +
+  ggtitle(paste0("Malaria Deaths in ", threecountries[1]))
+```
+
+
+## Bootstrapping
+
+Case resampling (without absolute)
+```{r}
+# all <- c()
+# for (i in 1:10000){
+#   ab <- sample(a$points,4,replace=TRUE)
+#   ac <- sample(a$points,5,replace=TRUE)
+#   all <- c(all,median(ab)-median(ac))
+# }
+# hist(all)
+# exact <- median(Female$points)-median(Male$points)
+# mean(all>=exact)
+```
+
+Confidence interval
+
+```{r}
+# obs_values<-vector()
+# lower_cis<-vector()
+# upper_cis<-vector()
+# for (i in big$percent.obese){
+#   # generate sample dataset
+#   obs_sample <- c(rep("obese", i*1000/100), 
+#                   rep("not_obese", (1000-i*1000/100))) 
+#   bootstrap_new <- c()
+#   # bootstrapping for 100 times
+#   for (b in 1:100){
+#     bootstrap_sample <- sample(obs_sample, length(obs_sample), replace = T)
+#     bootstrap_new <- c(bootstrap_new, 
+#                        length(subset(bootstrap_sample, 
+#                                      bootstrap_sample == "obese")))
+#   }
+#   # get 95% confidence interval
+#   lower_ci <- quantile(bootstrap_new, 0.025)
+#   upper_ci <- quantile(bootstrap_new, 0.975)
+#   lower_cis <- c(lower_cis, lower_ci/1000*100)
+#   upper_cis <- c(upper_cis, upper_ci/1000*100)
+# }
+# big$upper <- upper_cis
+# big$lower <- lower_cis
+```
+
+
+## Some data cleaning function
+gather
+```{r}
+data <- read.csv("really_tiny_dataset.csv",header = F)
+data[c(1,2),c(1,2,784,785)]
+names(data) <- c("num",seq(1,784))
+# c(-num): gather according column (which column is x), y is the header
+data <- gather(data,key="order",value="intensity",c(-num))
+head(data)
+# aline
+```
+aggregate (aggregate according to column)
+```{r}
+data_aggr <- aggregate(intensity ~ num+order,data=data,mean)
+head(data_aggr)
+```
+## Categorical data
+
+### chi-square
+
+input data
+
+```{r}
+survey <- matrix(c(84,82,34,82,57,11),nrow = 3)
+row.names(survey) <- c("Good", "Fair", "Bad")
+colnames(survey) <- c("A","B")
+survey_df <- as.data.frame(as.table(survey))
+names(survey_df) <- c("Rating","School","Freq")
+```
+
+Assumptions for chi-square test: 
+
+  1. Discrete, categorical data.
+  2. No expected cell frequencies are less than 1. 
+  3. No more than 20% are less than 5. 
+
+Generate chi square distribution
+```{r}
+chi.df2 <- rchisq(10000, df=2)
+plot(density(chi.df2))
+```
+
+Goodness of fit (actual vs expected)
+
+```{r}
+# Given probability (expected)
+chisq.test(c(84,82,34), p=c(0.45,0.43,0.12))
+# ggplot(data=dat, aes(x=chi2.value, color=df)) + geom_density()
+```
+
+homogeneity (2-way, same or different?)
+
+```{r}
+chisq.test(survey)
+```
+
+independency (2-way) (similar to homogeneity)
+
+```{r}
+
+```
+
+interdependency (3-way, r*c*l)
+
+```{r}
+
+```
+
+Data visualization
+
+```{r}
+#bar plot
+ggplot(data=survey_df,aes(x=Rating, y=Freq, fill=School)) + 
+  geom_bar(stat="identity",position = "dodge") + 
+  theme(axis.text = element_text(size = 25), 
+        legend.text =element_text(size = 25))
+#stacked bar plot
+ggplot(data=survey_df, aes(x=School, y=Freq, fill=Rating)) + 
+  geom_bar(stat = "identity",position = "fill") + 
+  theme(axis.text = element_text(size = 25), 
+        legend.text =element_text(size = 25))
+#balloon plot
+ggplot(data=survey_df, aes(x=School, y=Rating)) + 
+  geom_point(aes(size=Freq,color=Freq)) + 
+  theme(axis.text = element_text(size = 25), 
+        legend.text =element_text(size = 25))
+#mosaicplot
+mosaicplot(survey, color = c("red","blue"), xlab="Rating", ylab="School")
+```
+
+### Fisher's exact test (for small sample size)
+
+```{r}
+survival<- matrix(c(7,3,2,7),nrow = 2)
+row.names(survival) <- c("Alive","Dead")
+colnames(survival) <- c("WT","KO")
+#4.2 Chi-square test with Yates's correction on/off
+chisq.test(survival, correct = F)
+chisq.test(survival, correct = T)
+#.4.3 Fisher's exact test
+fisher.test(survival)
+```
+
+```{r}
+# str_detect & grep
+```
+
+group_by (bet mea value of the same group, similar to aggregate)
+```{r}
+# pixel_summary <- pixels_gathered %>%
+#   group_by(x, y, label) %>%
+#   summarize(mean_value = mean(value)) %>%
+#   ungroup()
+```
+
